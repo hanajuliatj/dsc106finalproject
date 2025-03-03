@@ -4,8 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stress Vs Exercise</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+
 </head>
 <body>
     <h1>Stress vs. Exercise</h1>
+    <h1>Timeline Explorer: Heart Rate, Temperature, and EDA</h1>
+    <label for="data-select">Select Data to Display:</label>
+    <select id="data-select">
+        <option value="value_hr">Heart Rate (HR)</option>
+        <option value ="value_eda">Electrodermal Activity (EDA)</option>
+        <option value="temp">Skin Temperature</option>
+    </select>
+    <button id="reset-zoom">Reset Zoom</button>
+    <svg id="timeline" width="900" height="500"></svg>
+
+    <script src = "script.js"></script>
 </body>
 </html>
