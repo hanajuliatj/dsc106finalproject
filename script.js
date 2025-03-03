@@ -12,6 +12,8 @@ d3.csv("preprocessed_data.csv").then(function(data) {
 
     // Call the function to create the timeline visualization
     createTimelineExplorer(data);
+    createWhatIfSimulator(data);
+
 });
 
 function createTimelineExplorer(data) {
@@ -205,4 +207,103 @@ function createTimelineExplorer(data) {
         .attr("transform", "rotate(-90)")
         .attr("text-anchor", "middle")
         .text("Sensor Readings");
+}
+
+function createWhatIfSimulator(data) {
+    const margin = { top: 50, right: 50, bottom: 50, left: 80 };
+    const width = 900 - margin.left - margin.right;
+    const height = 500 - margin.top - margin.bottom;
+
+    // Append SVG canvas
+    const svg = d3.select("#simulator-chart")
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Set up scales
+    const xScale = d3.scaleLinear().domain([0, 10]).range([0, width]);  // Scale for stress/exercise levels
+    const yScale = d3.scaleLinear().domain([
+        d3.min(data, d => Math.min(d.value_hr, d.value_eda, d.temp)),
+        d3.max(data, d => Math.max(d.value_hr, d.value_eda, d.temp))
+    ]).range([height, 0]);
+
+    // Create axes
+    svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(xScale).ticks(10));
+
+    svg.append("g")
+        .call(d3.axisLeft(yScale));
+
+    // Line generators for HR, Temp, and EDA
+    const lineHR = d3.line()
+        .x(d => xScale(d.stress))
+        .y(d => yScale(d.value_hr))
+        .curve(d3.curveMonotoneX);
+
+    const lineEDA = d3.line()
+        .x(d => xScale(d.stress))
+        .y(d => yScale(d.value_eda))
+        .curve(d3.curveMonotoneX);
+
+    const lineTemp = d3.line()
+        .x(d => xScale(d.stress))
+        .y(d => yScale(d.temp))
+        .curve(d3.curveMonotoneX);
+
+    // Initial data points for dynamic update
+    let simulatedData = d3.range(11).map(i => ({
+        stress: i,
+        value_hr: 60 + i * 2,  // Sample formula for HR increase
+        value_eda: 0.5 + i * 0.1,  // Sample formula for EDA increase
+        temp: 36 + i * 0.05  // Sample formula for Temp increase
+    }));
+
+    // Draw the initial HR, EDA, and Temp lines
+    const hrLine = svg.append("path")
+        .datum(simulatedData)
+        .attr("fill", "none")
+        .attr("stroke", "red")
+        .attr("stroke-width", 2)
+        .attr("d", lineHR);
+
+    const edaLine = svg.append("path")
+        .datum(simulatedData)
+        .attr("fill", "none")
+        .attr("stroke", "blue")
+        .attr("stroke-width", 2)
+        .attr("d", lineEDA);
+
+    const tempLine = svg.append("path")
+        .datum(simulatedData)
+        .attr("fill", "none")
+        .attr("stroke", "green")
+        .attr("stroke-width", 2)
+        .attr("d", lineTemp);
+
+    // Function to update predictions based on slider values
+    function updateSimulation() {
+        const stressLevel = parseFloat(d3.select("#stress-slider").property("value"));
+        const exerciseIntensity = parseFloat(d3.select("#exercise-slider").property("value"));
+
+        // Display selected values
+        d3.select("#stress-value").text(stressLevel);
+        d3.select("#exercise-value").text(exerciseIntensity);
+
+        // Generate new simulated data
+        simulatedData = d3.range(11).map(i => ({
+            stress: i,
+            value_hr: 60 + stressLevel * 2 + exerciseIntensity * 1.5,  // HR formula
+            value_eda: 0.5 + stressLevel * 0.1 + exerciseIntensity * 0.05,  // EDA formula
+            temp: 36 + stressLevel * 0.05 + exerciseIntensity * 0.02  // Temp formula
+        }));
+
+        // Update lines
+        hrLine.datum(simulatedData).transition().duration(500).attr("d", lineHR);
+        edaLine.datum(simulatedData).transition().duration(500).attr("d", lineEDA);
+        tempLine.datum(simulatedData).transition().duration(500).attr("d", lineTemp);
+    }
+
+    // Attach event listeners to sliders
+    d3.select("#stress-slider").on("input", updateSimulation);
+    d3.select("#exercise-slider").on("input", updateSimulation);
 }
